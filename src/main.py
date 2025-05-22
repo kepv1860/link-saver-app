@@ -8,7 +8,8 @@ from flask_cors import CORS # Import CORS
 from src.models.models import db # Updated to import from models.py
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
-CORS(app) # Enable CORS for all routes
+# Enable CORS for all possible Vite dev server origins and allow credentials
+CORS(app, origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"], supports_credentials=True)
 app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
 
 # Configure SQLite database

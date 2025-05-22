@@ -2,12 +2,13 @@ from flask import Blueprint, jsonify, request
 from src.models.models import db, Goal, User # Assuming User model exists
 from datetime import datetime
 import os
+import json
 import google.generativeai as genai # Import the library
 
 goals_bp = Blueprint("goals_bp", __name__)
 
-# Configure Gemini AI
-GEMINI_API_KEY = "AIzaSyDGy-amaQ4G-iHeZgAsZ5U8JLgc0ZouAAY" # Hardcoded as per user request
+# Configure Gemini AI - Using environment variable with fallback
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDGy-amaQ4G-iHeZgAsZ5U8JLgc0ZouAAY")
 genai.configure(api_key=GEMINI_API_KEY) # Configure the API key
 
 # Create a new goal and generate questions
@@ -38,7 +39,13 @@ def create_goal(user_id):
         questions_text = response.text
         
         try:
-            questions_list = eval(questions_text) # Using eval as it's a list of strings
+            # Extract JSON content from the response if it's wrapped in markdown code blocks
+            if "```json" in questions_text:
+                questions_text = questions_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in questions_text:
+                questions_text = questions_text.split("```")[1].split("```")[0].strip()
+                
+            questions_list = json.loads(questions_text) # Using json.loads instead of eval
             if not isinstance(questions_list, list) or not all(isinstance(q, str) for q in questions_list):
                 raise ValueError("AI response for questions is not a list of strings")
             new_goal.questions = [{ "question": q, "answer": "" } for q in questions_list]
@@ -139,7 +146,13 @@ def answer_question(user_id, goal_id, question_index):
             todos_text = response.text
 
             try:
-                todos_list = eval(todos_text)
+                # Extract JSON content from the response if it's wrapped in markdown code blocks
+                if "```json" in todos_text:
+                    todos_text = todos_text.split("```json")[1].split("```")[0].strip()
+                elif "```" in todos_text:
+                    todos_text = todos_text.split("```")[1].split("```")[0].strip()
+                    
+                todos_list = json.loads(todos_text) # Using json.loads instead of eval
                 if not isinstance(todos_list, list) or not all(isinstance(t, dict) for t in todos_list):
                     raise ValueError("AI response for todos is not a list of objects")
                 goal.todos = [{ "task": t.get("task", "N/A"), "timeframe": t.get("timeframe", "N/A"), "completed": False } for t in todos_list]
